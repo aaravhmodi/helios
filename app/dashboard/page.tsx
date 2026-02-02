@@ -488,6 +488,111 @@ export default function Dashboard() {
     ]
   }
 
+  // Helper function to determine which metrics to show based on role
+  const getVisibleMetrics = (): string[] => {
+    if (!userProfile) return []
+    const roleDef = getRoleDefinition(userProfile.crewRole)
+    
+    // Roles that see everything
+    if (roleDef.priorityMetrics.includes('all')) {
+      return ['o2_pct', 'co2_ppm', 'pressure_kpa', 'solar_kw', 'battery_kwh', 'radiation_msv_hr', 'temp_c']
+    }
+    
+    // Map priority metrics to actual metric keys
+    const metricMap: { [key: string]: string } = {
+      'o2_pct': 'o2_pct',
+      'co2_ppm': 'co2_ppm',
+      'pressure_kpa': 'pressure_kpa',
+      'humidity_pct': 'humidity_pct',
+      'radiation_msv_hr': 'radiation_msv_hr',
+      'temp_c': 'temp_c',
+      'solar_kw': 'solar_kw',
+      'battery_kwh': 'battery_kwh',
+      'load_kw': 'load_kw',
+      'crop_health_index': 'crop_health_index',
+      'strain_index': 'strain_index'
+    }
+    
+    return roleDef.priorityMetrics
+      .map(metric => metricMap[metric])
+      .filter(metric => metric !== undefined) as string[]
+  }
+
+  // Helper function to check if a metric should be shown
+  const shouldShowMetric = (metricKey: string): boolean => {
+    const visibleMetrics = getVisibleMetrics()
+    return visibleMetrics.includes(metricKey)
+  }
+
+  // Helper function to filter alerts by role
+  const getFilteredAlerts = (): Alert[] => {
+    if (!userProfile) return alerts
+    const roleDef = getRoleDefinition(userProfile.crewRole)
+    
+    // Roles that see all alerts
+    if (roleDef.priorityMetrics.includes('all')) {
+      return alerts
+    }
+    
+    // Map priority metrics to alert systems/categories
+    const systemMap: { [key: string]: string[] } = {
+      'o2_pct': ['atmosphere', 'life-support', 'oxygen'],
+      'co2_ppm': ['atmosphere', 'life-support', 'carbon-dioxide'],
+      'pressure_kpa': ['atmosphere', 'structural', 'pressure'],
+      'radiation_msv_hr': ['radiation', 'safety', 'health'],
+      'temp_c': ['atmosphere', 'life-support', 'temperature'],
+      'solar_kw': ['power', 'energy', 'solar'],
+      'battery_kwh': ['power', 'energy', 'battery'],
+      'crop_health_index': ['agriculture', 'food', 'crops'],
+      'strain_index': ['structural', 'mechanical', 'integrity']
+    }
+    
+    const relevantSystems = roleDef.priorityMetrics
+      .flatMap(metric => systemMap[metric] || [])
+      .filter(system => system !== undefined)
+    
+    return alerts.filter(alert => 
+      relevantSystems.some(system => 
+        alert.system.toLowerCase().includes(system) || 
+        alert.category.toLowerCase().includes(system)
+      )
+    )
+  }
+
+  // Helper function to filter recommendations by role
+  const getFilteredRecommendations = (): Recommendation[] => {
+    if (!userProfile) return recommendations
+    const roleDef = getRoleDefinition(userProfile.crewRole)
+    
+    // Roles that see all recommendations
+    if (roleDef.priorityMetrics.includes('all')) {
+      return recommendations
+    }
+    
+    // Map priority metrics to recommendation categories
+    const categoryMap: { [key: string]: string[] } = {
+      'o2_pct': ['atmosphere', 'life-support', 'oxygen'],
+      'co2_ppm': ['atmosphere', 'life-support', 'carbon-dioxide'],
+      'pressure_kpa': ['atmosphere', 'structural', 'pressure'],
+      'radiation_msv_hr': ['radiation', 'safety', 'health'],
+      'temp_c': ['atmosphere', 'life-support', 'temperature'],
+      'solar_kw': ['power', 'energy', 'solar'],
+      'battery_kwh': ['power', 'energy', 'battery'],
+      'crop_health_index': ['agriculture', 'food', 'crops'],
+      'strain_index': ['structural', 'mechanical', 'integrity']
+    }
+    
+    const relevantCategories = roleDef.priorityMetrics
+      .flatMap(metric => categoryMap[metric] || [])
+      .filter(cat => cat !== undefined)
+    
+    return recommendations.filter(rec => 
+      relevantCategories.some(cat => 
+        rec.category.toLowerCase().includes(cat)
+      )
+    )
+  }
+
   // Quiz Component
   if (showQuiz) {
     const heightValidation = getHeightValidation()
@@ -942,6 +1047,12 @@ export default function Dashboard() {
                         </span>
                       ))}
                     </div>
+                    <div style={{ marginTop: '12px', padding: '12px', background: 'rgba(100, 150, 255, 0.1)', borderRadius: '8px' }}>
+                      <p style={{ fontSize: '12px', margin: 0, opacity: 0.8 }}>
+                        <strong>Dashboard Customization:</strong> Your dashboard shows only the metrics relevant to your role. 
+                        Status cards, charts, alerts, and recommendations are filtered to focus on your key responsibilities.
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1003,201 +1114,259 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* System Status Overview - Show for all except educator */}
+          {/* System Status Overview - Role-based filtering */}
           {(!userProfile || userProfile.crewRole !== 'educator') && (
           <div className={styles.statusGrid}>
-            <div className={styles.statusCard}>
-              <div className={styles.statusIcon}>🌬️</div>
-              <div className={styles.statusInfo}>
-                <div className={styles.statusLabel}>Oxygen</div>
-                <div className={styles.statusValue}>{currentState?.o2_pct?.toFixed(2) || '0.00'}%</div>
+            {shouldShowMetric('o2_pct') && (
+              <div className={styles.statusCard}>
+                <div className={styles.statusIcon}>🌬️</div>
+                <div className={styles.statusInfo}>
+                  <div className={styles.statusLabel}>Oxygen</div>
+                  <div className={styles.statusValue}>{currentState?.o2_pct?.toFixed(2) || '0.00'}%</div>
+                </div>
+                <div className={styles.statusBar}>
+                  <div 
+                    className={styles.statusBarFill} 
+                    style={{ 
+                      width: `${((currentState?.o2_pct || 0) / 23) * 100}%`,
+                      backgroundColor: currentState?.o2_pct < 20 ? '#f44336' : '#4caf50'
+                    }}
+                  ></div>
+                </div>
               </div>
-              <div className={styles.statusBar}>
-                <div 
-                  className={styles.statusBarFill} 
-                  style={{ 
-                    width: `${((currentState?.o2_pct || 0) / 23) * 100}%`,
-                    backgroundColor: currentState?.o2_pct < 20 ? '#f44336' : '#4caf50'
-                  }}
-                ></div>
-              </div>
-            </div>
+            )}
 
-            <div className={styles.statusCard}>
-              <div className={styles.statusIcon}>💨</div>
-              <div className={styles.statusInfo}>
-                <div className={styles.statusLabel}>CO2</div>
-                <div className={styles.statusValue}>{currentState?.co2_ppm?.toFixed(0) || '0'} ppm</div>
+            {shouldShowMetric('co2_ppm') && (
+              <div className={styles.statusCard}>
+                <div className={styles.statusIcon}>💨</div>
+                <div className={styles.statusInfo}>
+                  <div className={styles.statusLabel}>CO2</div>
+                  <div className={styles.statusValue}>{currentState?.co2_ppm?.toFixed(0) || '0'} ppm</div>
+                </div>
+                <div className={styles.statusBar}>
+                  <div 
+                    className={styles.statusBarFill} 
+                    style={{ 
+                      width: `${Math.min(((currentState?.co2_ppm || 0) / 500) * 100, 100)}%`,
+                      backgroundColor: currentState?.co2_ppm > 450 ? '#f44336' : '#4caf50'
+                    }}
+                  ></div>
+                </div>
               </div>
-              <div className={styles.statusBar}>
-                <div 
-                  className={styles.statusBarFill} 
-                  style={{ 
-                    width: `${Math.min(((currentState?.co2_ppm || 0) / 500) * 100, 100)}%`,
-                    backgroundColor: currentState?.co2_ppm > 450 ? '#f44336' : '#4caf50'
-                  }}
-                ></div>
-              </div>
-            </div>
+            )}
 
-            <div className={styles.statusCard}>
-              <div className={styles.statusIcon}>🔧</div>
-              <div className={styles.statusInfo}>
-                <div className={styles.statusLabel}>Pressure</div>
-                <div className={styles.statusValue}>{currentState?.pressure_kpa?.toFixed(1) || '0.0'} kPa</div>
+            {shouldShowMetric('pressure_kpa') && (
+              <div className={styles.statusCard}>
+                <div className={styles.statusIcon}>🔧</div>
+                <div className={styles.statusInfo}>
+                  <div className={styles.statusLabel}>Pressure</div>
+                  <div className={styles.statusValue}>{currentState?.pressure_kpa?.toFixed(1) || '0.0'} kPa</div>
+                </div>
+                <div className={styles.statusBar}>
+                  <div 
+                    className={styles.statusBarFill} 
+                    style={{ 
+                      width: `${((currentState?.pressure_kpa || 0) / 103) * 100}%`,
+                      backgroundColor: currentState?.pressure_kpa < 95 ? '#f44336' : '#4caf50'
+                    }}
+                  ></div>
+                </div>
               </div>
-              <div className={styles.statusBar}>
-                <div 
-                  className={styles.statusBarFill} 
-                  style={{ 
-                    width: `${((currentState?.pressure_kpa || 0) / 103) * 100}%`,
-                    backgroundColor: currentState?.pressure_kpa < 95 ? '#f44336' : '#4caf50'
-                  }}
-                ></div>
-              </div>
-            </div>
+            )}
 
-            <div className={styles.statusCard}>
-              <div className={styles.statusIcon}>☀️</div>
-              <div className={styles.statusInfo}>
-                <div className={styles.statusLabel}>Solar Power</div>
-                <div className={styles.statusValue}>{currentState?.solar_kw?.toFixed(0) || '0'} kW</div>
+            {shouldShowMetric('solar_kw') && (
+              <div className={styles.statusCard}>
+                <div className={styles.statusIcon}>☀️</div>
+                <div className={styles.statusInfo}>
+                  <div className={styles.statusLabel}>Solar Power</div>
+                  <div className={styles.statusValue}>{currentState?.solar_kw?.toFixed(0) || '0'} kW</div>
+                </div>
+                <div className={styles.statusBar}>
+                  <div 
+                    className={styles.statusBarFill} 
+                    style={{ 
+                      width: `${((currentState?.solar_kw || 0) / 1100) * 100}%`,
+                      backgroundColor: '#2196f3'
+                    }}
+                  ></div>
+                </div>
               </div>
-              <div className={styles.statusBar}>
-                <div 
-                  className={styles.statusBarFill} 
-                  style={{ 
-                    width: `${((currentState?.solar_kw || 0) / 1100) * 100}%`,
-                    backgroundColor: '#2196f3'
-                  }}
-                ></div>
-              </div>
-            </div>
+            )}
 
-            <div className={styles.statusCard}>
-              <div className={styles.statusIcon}>🔋</div>
-              <div className={styles.statusInfo}>
-                <div className={styles.statusLabel}>Battery</div>
-                <div className={styles.statusValue}>{currentState?.battery_kwh?.toFixed(0) || '0'} kWh</div>
+            {shouldShowMetric('battery_kwh') && (
+              <div className={styles.statusCard}>
+                <div className={styles.statusIcon}>🔋</div>
+                <div className={styles.statusInfo}>
+                  <div className={styles.statusLabel}>Battery</div>
+                  <div className={styles.statusValue}>{currentState?.battery_kwh?.toFixed(0) || '0'} kWh</div>
+                </div>
+                <div className={styles.statusBar}>
+                  <div 
+                    className={styles.statusBarFill} 
+                    style={{ 
+                      width: `${((currentState?.battery_kwh || 0) / 500) * 100}%`,
+                      backgroundColor: currentState?.battery_kwh < 50 ? '#f44336' : '#9c27b0'
+                    }}
+                  ></div>
+                </div>
               </div>
-              <div className={styles.statusBar}>
-                <div 
-                  className={styles.statusBarFill} 
-                  style={{ 
-                    width: `${((currentState?.battery_kwh || 0) / 500) * 100}%`,
-                    backgroundColor: currentState?.battery_kwh < 50 ? '#f44336' : '#9c27b0'
-                  }}
-                ></div>
-              </div>
-            </div>
+            )}
 
-            <div className={styles.statusCard}>
-              <div className={styles.statusIcon}>☢️</div>
-              <div className={styles.statusInfo}>
-                <div className={styles.statusLabel}>Radiation</div>
-                <div className={styles.statusValue}>{currentState?.radiation_msv_hr?.toFixed(4) || '0.0000'} mSv/hr</div>
+            {shouldShowMetric('radiation_msv_hr') && (
+              <div className={styles.statusCard}>
+                <div className={styles.statusIcon}>☢️</div>
+                <div className={styles.statusInfo}>
+                  <div className={styles.statusLabel}>Radiation</div>
+                  <div className={styles.statusValue}>{currentState?.radiation_msv_hr?.toFixed(4) || '0.0000'} mSv/hr</div>
+                </div>
+                <div className={styles.statusBar}>
+                  <div 
+                    className={styles.statusBarFill} 
+                    style={{ 
+                      width: `${Math.min(((currentState?.radiation_msv_hr || 0) / 0.1) * 100, 100)}%`,
+                      backgroundColor: currentState?.radiation_msv_hr > 0.05 ? '#f44336' : '#4caf50'
+                    }}
+                  ></div>
+                </div>
               </div>
-              <div className={styles.statusBar}>
-                <div 
-                  className={styles.statusBarFill} 
-                  style={{ 
-                    width: `${Math.min(((currentState?.radiation_msv_hr || 0) / 0.1) * 100, 100)}%`,
-                    backgroundColor: currentState?.radiation_msv_hr > 0.05 ? '#f44336' : '#4caf50'
-                  }}
-                ></div>
+            )}
+
+            {shouldShowMetric('temp_c') && (
+              <div className={styles.statusCard}>
+                <div className={styles.statusIcon}>🌡️</div>
+                <div className={styles.statusInfo}>
+                  <div className={styles.statusLabel}>Temperature</div>
+                  <div className={styles.statusValue}>{currentState?.temp_c?.toFixed(1) || '0.0'}°C</div>
+                </div>
+                <div className={styles.statusBar}>
+                  <div 
+                    className={styles.statusBarFill} 
+                    style={{ 
+                      width: `${((currentState?.temp_c || 22) / 30) * 100}%`,
+                      backgroundColor: (currentState?.temp_c || 22) < 20 || (currentState?.temp_c || 22) > 25 ? '#f44336' : '#4caf50'
+                    }}
+                  ></div>
+                </div>
               </div>
-            </div>
+            )}
           </div>
           )}
 
-          {/* Charts Grid - Show for all except educator */}
+          {/* Charts Grid - Role-based filtering */}
           {(!userProfile || userProfile.crewRole !== 'educator') && (
           <div className={styles.chartsGrid}>
-            <div className={styles.chartCard}>
-              <h3 className={styles.chartTitle}>Oxygen (O2) %</h3>
-              <ResponsiveContainer width="100%" height={180}>
-                <LineChart data={telemetryData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                  <XAxis dataKey="timestamp" stroke="rgba(255,255,255,0.5)" tick={{fill: 'rgba(255,255,255,0.7)', fontSize: 10}} />
-                  <YAxis domain={[19, 23]} stroke="rgba(255,255,255,0.5)" tick={{fill: 'rgba(255,255,255,0.7)', fontSize: 10}} />
-                  <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px' }} />
-                  <Line type="monotone" dataKey="o2_pct" stroke="#4CAF50" strokeWidth={2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+            {shouldShowMetric('o2_pct') && (
+              <div className={styles.chartCard}>
+                <h3 className={styles.chartTitle}>Oxygen (O2) %</h3>
+                <ResponsiveContainer width="100%" height={180}>
+                  <LineChart data={telemetryData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                    <XAxis dataKey="timestamp" stroke="rgba(255,255,255,0.5)" tick={{fill: 'rgba(255,255,255,0.7)', fontSize: 10}} />
+                    <YAxis domain={[19, 23]} stroke="rgba(255,255,255,0.5)" tick={{fill: 'rgba(255,255,255,0.7)', fontSize: 10}} />
+                    <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px' }} />
+                    <Line type="monotone" dataKey="o2_pct" stroke="#4CAF50" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
 
-            <div className={styles.chartCard}>
-              <h3 className={styles.chartTitle}>CO2 (ppm)</h3>
-              <ResponsiveContainer width="100%" height={180}>
-                <LineChart data={telemetryData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                  <XAxis dataKey="timestamp" stroke="rgba(255,255,255,0.5)" tick={{fill: 'rgba(255,255,255,0.7)', fontSize: 10}} />
-                  <YAxis domain={[300, 600]} stroke="rgba(255,255,255,0.5)" tick={{fill: 'rgba(255,255,255,0.7)', fontSize: 10}} />
-                  <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px' }} />
-                  <Line type="monotone" dataKey="co2_ppm" stroke="#FF9800" strokeWidth={2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+            {shouldShowMetric('co2_ppm') && (
+              <div className={styles.chartCard}>
+                <h3 className={styles.chartTitle}>CO2 (ppm)</h3>
+                <ResponsiveContainer width="100%" height={180}>
+                  <LineChart data={telemetryData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                    <XAxis dataKey="timestamp" stroke="rgba(255,255,255,0.5)" tick={{fill: 'rgba(255,255,255,0.7)', fontSize: 10}} />
+                    <YAxis domain={[300, 600]} stroke="rgba(255,255,255,0.5)" tick={{fill: 'rgba(255,255,255,0.7)', fontSize: 10}} />
+                    <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px' }} />
+                    <Line type="monotone" dataKey="co2_ppm" stroke="#FF9800" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
 
-            <div className={styles.chartCard}>
-              <h3 className={styles.chartTitle}>Solar Power (kW)</h3>
-              <ResponsiveContainer width="100%" height={180}>
-                <LineChart data={telemetryData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                  <XAxis dataKey="timestamp" stroke="rgba(255,255,255,0.5)" tick={{fill: 'rgba(255,255,255,0.7)', fontSize: 10}} />
-                  <YAxis domain={[0, 1200]} stroke="rgba(255,255,255,0.5)" tick={{fill: 'rgba(255,255,255,0.7)', fontSize: 10}} />
-                  <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px' }} />
-                  <Line type="monotone" dataKey="solar_kw" stroke="#2196F3" strokeWidth={2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+            {shouldShowMetric('solar_kw') && (
+              <div className={styles.chartCard}>
+                <h3 className={styles.chartTitle}>Solar Power (kW)</h3>
+                <ResponsiveContainer width="100%" height={180}>
+                  <LineChart data={telemetryData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                    <XAxis dataKey="timestamp" stroke="rgba(255,255,255,0.5)" tick={{fill: 'rgba(255,255,255,0.7)', fontSize: 10}} />
+                    <YAxis domain={[0, 1200]} stroke="rgba(255,255,255,0.5)" tick={{fill: 'rgba(255,255,255,0.7)', fontSize: 10}} />
+                    <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px' }} />
+                    <Line type="monotone" dataKey="solar_kw" stroke="#2196F3" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
 
-            <div className={styles.chartCard}>
-              <h3 className={styles.chartTitle}>Battery (kWh)</h3>
-              <ResponsiveContainer width="100%" height={180}>
-                <LineChart data={telemetryData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                  <XAxis dataKey="timestamp" stroke="rgba(255,255,255,0.5)" tick={{fill: 'rgba(255,255,255,0.7)', fontSize: 10}} />
-                  <YAxis domain={[0, 500]} stroke="rgba(255,255,255,0.5)" tick={{fill: 'rgba(255,255,255,0.7)', fontSize: 10}} />
-                  <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px' }} />
-                  <Line type="monotone" dataKey="battery_kwh" stroke="#9C27B0" strokeWidth={2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+            {shouldShowMetric('battery_kwh') && (
+              <div className={styles.chartCard}>
+                <h3 className={styles.chartTitle}>Battery (kWh)</h3>
+                <ResponsiveContainer width="100%" height={180}>
+                  <LineChart data={telemetryData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                    <XAxis dataKey="timestamp" stroke="rgba(255,255,255,0.5)" tick={{fill: 'rgba(255,255,255,0.7)', fontSize: 10}} />
+                    <YAxis domain={[0, 500]} stroke="rgba(255,255,255,0.5)" tick={{fill: 'rgba(255,255,255,0.7)', fontSize: 10}} />
+                    <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px' }} />
+                    <Line type="monotone" dataKey="battery_kwh" stroke="#9C27B0" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
 
-            <div className={styles.chartCard}>
-              <h3 className={styles.chartTitle}>Radiation (mSv/hr)</h3>
-              <ResponsiveContainer width="100%" height={180}>
-                <LineChart data={telemetryData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                  <XAxis dataKey="timestamp" stroke="rgba(255,255,255,0.5)" tick={{fill: 'rgba(255,255,255,0.7)', fontSize: 10}} />
-                  <YAxis domain={[0, 0.1]} stroke="rgba(255,255,255,0.5)" tick={{fill: 'rgba(255,255,255,0.7)', fontSize: 10}} />
-                  <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px' }} />
-                  <Line type="monotone" dataKey="radiation_msv_hr" stroke="#F44336" strokeWidth={2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+            {shouldShowMetric('radiation_msv_hr') && (
+              <div className={styles.chartCard}>
+                <h3 className={styles.chartTitle}>Radiation (mSv/hr)</h3>
+                <ResponsiveContainer width="100%" height={180}>
+                  <LineChart data={telemetryData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                    <XAxis dataKey="timestamp" stroke="rgba(255,255,255,0.5)" tick={{fill: 'rgba(255,255,255,0.7)', fontSize: 10}} />
+                    <YAxis domain={[0, 0.1]} stroke="rgba(255,255,255,0.5)" tick={{fill: 'rgba(255,255,255,0.7)', fontSize: 10}} />
+                    <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px' }} />
+                    <Line type="monotone" dataKey="radiation_msv_hr" stroke="#F44336" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
 
-            <div className={styles.chartCard}>
-              <h3 className={styles.chartTitle}>Pressure (kPa)</h3>
-              <ResponsiveContainer width="100%" height={180}>
-                <LineChart data={telemetryData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                  <XAxis dataKey="timestamp" stroke="rgba(255,255,255,0.5)" tick={{fill: 'rgba(255,255,255,0.7)', fontSize: 10}} />
-                  <YAxis domain={[90, 105]} stroke="rgba(255,255,255,0.5)" tick={{fill: 'rgba(255,255,255,0.7)', fontSize: 10}} />
-                  <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px' }} />
-                  <Line type="monotone" dataKey="pressure_kpa" stroke="#00BCD4" strokeWidth={2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+            {shouldShowMetric('pressure_kpa') && (
+              <div className={styles.chartCard}>
+                <h3 className={styles.chartTitle}>Pressure (kPa)</h3>
+                <ResponsiveContainer width="100%" height={180}>
+                  <LineChart data={telemetryData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                    <XAxis dataKey="timestamp" stroke="rgba(255,255,255,0.5)" tick={{fill: 'rgba(255,255,255,0.7)', fontSize: 10}} />
+                    <YAxis domain={[90, 105]} stroke="rgba(255,255,255,0.5)" tick={{fill: 'rgba(255,255,255,0.7)', fontSize: 10}} />
+                    <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px' }} />
+                    <Line type="monotone" dataKey="pressure_kpa" stroke="#00BCD4" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            {shouldShowMetric('temp_c') && (
+              <div className={styles.chartCard}>
+                <h3 className={styles.chartTitle}>Temperature (°C)</h3>
+                <ResponsiveContainer width="100%" height={180}>
+                  <LineChart data={telemetryData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                    <XAxis dataKey="timestamp" stroke="rgba(255,255,255,0.5)" tick={{fill: 'rgba(255,255,255,0.7)', fontSize: 10}} />
+                    <YAxis domain={[18, 28]} stroke="rgba(255,255,255,0.5)" tick={{fill: 'rgba(255,255,255,0.7)', fontSize: 10}} />
+                    <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px' }} />
+                    <Line type="monotone" dataKey="temp_c" stroke="#FF5722" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </div>
           )}
 
-          {/* Alerts and Recommendations - Show for all except educator */}
+          {/* Alerts and Recommendations - Role-based filtering */}
           {(!userProfile || userProfile.crewRole !== 'educator') && (
           <div className={styles.tablesGrid}>
             <div className={styles.tableCard}>
-              <h2 className={styles.tableTitle}>Active Alerts ({alerts.length})</h2>
+              <h2 className={styles.tableTitle}>Active Alerts ({getFilteredAlerts().length})</h2>
               <div className={styles.tableContainer}>
                 <table className={styles.table}>
                   <thead>
@@ -1209,12 +1378,12 @@ export default function Dashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {alerts.length === 0 ? (
+                    {getFilteredAlerts().length === 0 ? (
                       <tr>
-                        <td colSpan={4} className={styles.emptyCell}>No active alerts</td>
+                        <td colSpan={4} className={styles.emptyCell}>No active alerts for your role</td>
                       </tr>
                     ) : (
-                      alerts.map((alert) => (
+                      getFilteredAlerts().map((alert) => (
                         <tr key={alert.id} className={styles[alert.severity.toLowerCase()]}>
                           <td>{new Date(alert.timestamp).toLocaleTimeString()}</td>
                           <td>
@@ -1233,7 +1402,7 @@ export default function Dashboard() {
             </div>
 
             <div className={styles.tableCard}>
-              <h2 className={styles.tableTitle}>Recommendations ({recommendations.length})</h2>
+              <h2 className={styles.tableTitle}>Recommendations ({getFilteredRecommendations().length})</h2>
               <div className={styles.tableContainer}>
                 <table className={styles.table}>
                   <thead>
@@ -1245,12 +1414,12 @@ export default function Dashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {recommendations.length === 0 ? (
+                    {getFilteredRecommendations().length === 0 ? (
                       <tr>
-                        <td colSpan={4} className={styles.emptyCell}>No recommendations</td>
+                        <td colSpan={4} className={styles.emptyCell}>No recommendations for your role</td>
                       </tr>
                     ) : (
-                      recommendations.map((rec) => (
+                      getFilteredRecommendations().map((rec) => (
                         <tr key={rec.id}>
                           <td>
                             <span className={styles[`badge_${rec.priority}`]}>

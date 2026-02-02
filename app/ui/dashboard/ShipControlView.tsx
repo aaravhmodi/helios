@@ -69,13 +69,16 @@ export default function ShipControlView({ telemetryData, currentState }: ShipCon
             <h3 className={styles.categoryTitle}>{category}</h3>
             <div className={styles.levelsList}>
               {levels.map((level, idx) => (
-                <div key={idx} className={`${styles.levelItem} ${styles[`status${level.status}`]}`}>
+                <div 
+                  key={idx} 
+                  className={`${styles.levelItem} ${level.status === 'normal' ? styles.statusnormal : styles.statuswarning}`}
+                >
                   <div className={styles.levelLabel}>{level.label}</div>
                   <div className={styles.levelValue}>
                     <span className={styles.value}>{level.value}</span>
                     {level.unit && <span className={styles.unit}>{level.unit}</span>}
                   </div>
-                  <div className={`${styles.statusIndicator} ${styles[level.status]}`}>
+                  <div className={`${styles.statusIndicator} ${level.status === 'normal' ? styles.normal : styles.warning}`}>
                     {level.status === 'normal' ? '✓' : '⚠'}
                   </div>
                 </div>

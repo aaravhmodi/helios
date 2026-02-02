@@ -1,5 +1,7 @@
 'use client'
 
+import { useEffect } from 'react'
+
 export default function Error({
   error,
   reset,
@@ -7,10 +9,15 @@ export default function Error({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  useEffect(() => {
+    console.error('Error:', error)
+  }, [error])
+
   return (
-    <div style={{ padding: '20px', textAlign: 'center' }}>
+    <div style={{ padding: '20px', textAlign: 'center', color: '#fff', background: '#1a1a2e', minHeight: '100vh' }}>
       <h2>Something went wrong!</h2>
-      <button onClick={reset}>Try again</button>
+      <p>{error.message}</p>
+      <button onClick={reset} style={{ padding: '10px 20px', marginTop: '10px', cursor: 'pointer' }}>Try again</button>
     </div>
   )
 }

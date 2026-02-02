@@ -62,11 +62,11 @@
   transition: all 0.2s;
 }
 
-.levelItem.statusnormal {
+.statusnormal {
   border-left-color: #4caf50;
 }
 
-.levelItem.statuswarning {
+.statuswarning {
   border-left-color: #ff9800;
 }
 
