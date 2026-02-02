@@ -1246,3 +1246,30 @@
 .chatMessages::-webkit-scrollbar-thumb:hover {
   background: rgba(100, 150, 255, 0.5);
 }
+
+/* Validation Messages */
+.warning {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  border-radius: 6px;
+  color: #ffc107;
+  font-size: 12px;
+}
+
+.error {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: rgba(244, 67, 54, 0.1);
+  border: 1px solid rgba(244, 67, 54, 0.3);
+  border-radius: 6px;
+  color: #f44336;
+  font-size: 12px;
+}
+
+.shiftMode {
+  font-size: 11px;
+  opacity: 0.7;
+  margin-top: 4px;
+}
