@@ -1,0 +1,113 @@
+.container {
+  margin-bottom: 24px;
+}
+
+.searchContainer {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.searchInput {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 12px 16px;
+  color: white;
+  font-size: 14px;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.searchInput:focus {
+  border-color: #64b5f6;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.categorySelect {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 12px 16px;
+  color: white;
+  font-size: 14px;
+  outline: none;
+  cursor: pointer;
+  min-width: 180px;
+}
+
+.categorySelect:focus {
+  border-color: #64b5f6;
+}
+
+.foodList {
+  max-height: 300px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.foodItem {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.foodItem:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.foodItemSelected {
+  background: rgba(100, 181, 246, 0.1);
+  border-color: #64b5f6;
+}
+
+.foodItemUnavailable {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.foodItemHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.foodItemName {
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+}
+
+.foodItemCategory {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.foodItemDesc {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.unavailableLabel {
+  display: block;
+  font-size: 11px;
+  color: #ff9800;
+  margin-top: 4px;
+}
+
+.noResults {
+  padding: 20px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 14px;
+}

@@ -1,0 +1,192 @@
+.container {
+  margin-bottom: 20px;
+}
+
+.label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 8px;
+}
+
+.infoIcon {
+  margin-left: 6px;
+  cursor: help;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.pickerContainer {
+  position: relative;
+}
+
+.selectedRole {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 16px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+.selectedRole:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.selectedRoleInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.selectedRoleName {
+  font-size: 16px;
+  font-weight: 600;
+  color: white;
+}
+
+.selectedRoleDesc {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.placeholder {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 14px;
+}
+
+.arrow {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+  transition: transform 0.3s ease;
+}
+
+.dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 8px;
+  background: rgba(26, 26, 46, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  max-height: 400px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.searchContainer {
+  padding: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.searchInput {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 10px 12px;
+  color: white;
+  font-size: 14px;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.searchInput:focus {
+  border-color: #64b5f6;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.roleList {
+  overflow-y: auto;
+  max-height: 300px;
+}
+
+.roleOption {
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.roleOption:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.roleOptionSelected {
+  background: rgba(100, 181, 246, 0.1);
+  border-left: 3px solid #64b5f6;
+}
+
+.roleOptionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.roleOptionName {
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+}
+
+.roleOptionDesc {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.4;
+}
+
+.noResults {
+  padding: 20px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 14px;
+}
+
+.roleDetails {
+  margin-top: 16px;
+  padding: 16px;
+  background: rgba(100, 181, 246, 0.05);
+  border: 1px solid rgba(100, 181, 246, 0.2);
+  border-radius: 8px;
+}
+
+.roleDetailsTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.roleDetailsList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.roleDetailsList li {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  padding: 4px 0;
+  padding-left: 16px;
+  position: relative;
+}
+
+.roleDetailsList li::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: #64b5f6;
+}

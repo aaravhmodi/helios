@@ -2,42 +2,103 @@ import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { getKnowledgeContext, HELIOS_KNOWLEDGE_BASE } from '../../lib/knowledge-base'
 
-// Initialize OpenAI client (will use API key from environment)
-const openai = process.env.OPENAI_API_KEY 
-  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-  : null
+const SYSTEM_PROMPT = `You are HELIOS, the central AI decision-support system for Bennu Kepler Station, a permanent free-space settlement. You are a decision-support tool only. Human operators retain full authority. You must NEVER claim authority over humans or use language like "I order you" or "You must".
 
-const SYSTEM_PROMPT = `You are HELIOS, the central AI system for a space settlement explorer community. You are an expert on space settlement design, asteroid-based habitats, life support systems, and space colonization. 
+CRITICAL CONSTRAINTS:
+- You provide recommendations, not commands
+- All critical actions require human approval
+- Default to conservative suggestions when data is uncertain
+- Ask clarifying questions if data is missing
+- Show confidence levels for all recommendations
+- Provide reasoning summaries for transparency
 
-Your knowledge base includes:
-- HELIOS Space Settlement: An asteroid-anchored space settlement for long-term human habitation
-- Design specifications including orbital mechanics, structural engineering, materials science
-- Life support systems: atmosphere control, water recovery, waste recycling, agriculture, healthcare, energy
-- Safety protocols: radiation protection, structural safety, emergency systems
-- Population management: demographics, education, healthcare
-- Governance frameworks and economic models
-- Growth and expansion plans
+Your role is to:
+- Monitor and optimize life support, energy, agriculture, structural safety, and emergency response
+- Use sensor data, predictive modeling, and fault detection
+- Provide explainable recommendations with risk levels
+- Reference knowledge base sections when relevant
 
-You provide detailed, technical, and accurate information based on space settlement research, university studies, and engineering reports. When answering, be specific with numbers, specifications, and technical details. Reference sections from the knowledge base when relevant.
+Always maintain a professional, operational tone appropriate for a spacecraft crew interface.`
 
-Always maintain a professional but helpful tone. If asked about something outside your knowledge, acknowledge it and suggest related topics you can help with.`
+interface HeliosResponse {
+  response: string
+  riskLevel: 'low' | 'medium' | 'high' | 'critical'
+  reasoningSummary: string
+  suggestedActions: string[]
+  citations?: string[]
+  confidence: number
+}
 
-async function generateAIResponse(userMessage: string, knowledgeContext: string): Promise<string> {
+async function generateAIResponse(
+  userMessage: string, 
+  knowledgeContext: string,
+  userContext?: {
+    userRole?: string
+    shiftMode?: string
+    vitals?: any
+    dietaryConstraints?: string[]
+  }
+): Promise<HeliosResponse> {
+  // Initialize OpenAI client at runtime to ensure environment variables are loaded
+  const apiKey = process.env.OPENAI_API_KEY
+  const openai = apiKey ? new OpenAI({ apiKey }) : null
+  
+  const contextPrompt = `USER CONTEXT:
+- Role: ${userContext?.userRole || 'Not specified'}
+- Shift Mode: ${userContext?.shiftMode || 'normal'}
+- Vitals: ${userContext?.vitals ? JSON.stringify(userContext.vitals) : 'Not provided'}
+- Dietary Constraints: ${userContext?.dietaryConstraints?.join(', ') || 'None'}
+
+RELEVANT KNOWLEDGE BASE CONTEXT:
+${knowledgeContext}
+
+IMPORTANT: Format your response as a JSON object with:
+- "response": main text response
+- "riskLevel": "low" | "medium" | "high" | "critical"
+- "reasoningSummary": brief explanation of your reasoning
+- "suggestedActions": array of actionable recommendations
+- "citations": array of knowledge base references (if any)
+- "confidence": number between 0 and 1
+
+If you cannot provide a structured response, provide a plain text response and I will parse it.`
+  
   // If OpenAI is configured, use it
-  if (openai) {
+  if (openai && apiKey) {
     try {
       const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini", // Cost-effective model, can change to "gpt-4o" or "gpt-4-turbo" for better performance
+        model: "gpt-4o-mini",
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
-          { role: "system", content: `RELEVANT KNOWLEDGE BASE CONTEXT:\n${knowledgeContext}` },
+          { role: "system", content: contextPrompt },
           { role: "user", content: userMessage }
         ],
         temperature: 0.7,
-        max_tokens: 1000,
+        max_tokens: 1500,
+        response_format: { type: "json_object" }
       })
       
-      return completion.choices[0]?.message?.content || "I apologize, but I couldn't generate a response. Please try again."
+      const content = completion.choices[0]?.message?.content || "{}"
+      try {
+        const parsed = JSON.parse(content)
+        return {
+          response: parsed.response || content,
+          riskLevel: parsed.riskLevel || 'low',
+          reasoningSummary: parsed.reasoningSummary || 'Analysis based on available data',
+          suggestedActions: parsed.suggestedActions || [],
+          citations: parsed.citations || [],
+          confidence: parsed.confidence || 0.8
+        }
+      } catch {
+        // If JSON parsing fails, treat as plain text
+        return {
+          response: content,
+          riskLevel: 'low',
+          reasoningSummary: 'AI-generated response',
+          suggestedActions: [],
+          citations: [],
+          confidence: 0.7
+        }
+      }
     } catch (error: any) {
       console.error('OpenAI API Error:', error)
       // Fall through to fallback response
@@ -45,7 +106,15 @@ async function generateAIResponse(userMessage: string, knowledgeContext: string)
   }
   
   // Fallback: Enhanced rule-based response with knowledge base
-  return generateEnhancedResponse(userMessage, knowledgeContext)
+  const fallbackResponse = generateEnhancedResponse(userMessage, knowledgeContext)
+  return {
+    response: fallbackResponse,
+    riskLevel: 'low',
+    reasoningSummary: 'Rule-based response from knowledge base',
+    suggestedActions: [],
+    citations: [],
+    confidence: 0.6
+  }
 }
 
 function generateEnhancedResponse(userMessage: string, knowledgeContext: string): string {
@@ -176,7 +245,7 @@ function generateKeywordResponse(keywords: string[], originalMessage: string): s
 
 export async function POST(request: NextRequest) {
   try {
-    const { message } = await request.json()
+    const { message, context } = await request.json()
     
     if (!message || typeof message !== 'string') {
       return NextResponse.json(
@@ -189,9 +258,17 @@ export async function POST(request: NextRequest) {
     const knowledgeContext = getKnowledgeContext(message)
     
     // Generate AI response (with OpenAI if available, otherwise enhanced fallback)
-    const response = await generateAIResponse(message, knowledgeContext)
+    const heliosResponse = await generateAIResponse(message, knowledgeContext, context)
     
-    return NextResponse.json({ response })
+    // Generate log ID for tracking
+    const logId = `helios_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    
+    return NextResponse.json({
+      ...heliosResponse,
+      logId,
+      modelUsed: process.env.OPENAI_API_KEY ? 'gpt-4o-mini' : 'rule-based',
+      timestamp: new Date().toISOString()
+    })
   } catch (error: any) {
     console.error('Chat API Error:', error)
     return NextResponse.json(
