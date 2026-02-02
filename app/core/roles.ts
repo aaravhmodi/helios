@@ -114,11 +114,25 @@ export const CREW_ROLES: RoleDefinition[] = [
     description: 'Overall station command and emergency coordination'
   },
   {
+    id: 'ship-control',
+    displayName: 'Ship Control / Operations',
+    keyResponsibilities: [
+      'Monitor all station systems',
+      'Track all levels and metrics',
+      'Coordinate system-wide operations',
+      'Oversee multi-system integration'
+    ],
+    priorityMetrics: ['all'],
+    defaultThresholds: {},
+    description: 'Comprehensive oversight of all station systems and levels'
+  },
+  {
     id: 'educator',
     displayName: 'Educator',
     keyResponsibilities: [
       'Crew training',
-      'Educational programs',
+      'Educational programs (Grades 1-12, University)',
+      'Curriculum development',
       'Documentation',
       'Knowledge transfer'
     ],

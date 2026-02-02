@@ -32,6 +32,7 @@ interface HeliosResponse {
 async function generateAIResponse(
   userMessage: string, 
   knowledgeContext: string,
+  conversationHistory?: Array<{role: 'user' | 'assistant', content: string}>,
   userContext?: {
     userRole?: string
     shiftMode?: string
@@ -65,13 +66,29 @@ If you cannot provide a structured response, provide a plain text response and I
   // If OpenAI is configured, use it
   if (openai && apiKey) {
     try {
+      // Build message history
+      const messages: any[] = [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "system", content: contextPrompt }
+      ]
+      
+      // Add conversation history (last 10 messages to avoid token limits)
+      if (conversationHistory && conversationHistory.length > 0) {
+        const recentHistory = conversationHistory.slice(-10)
+        recentHistory.forEach(msg => {
+          messages.push({
+            role: msg.role === 'assistant' ? 'assistant' : 'user',
+            content: msg.content
+          })
+        })
+      }
+      
+      // Add current user message
+      messages.push({ role: "user", content: userMessage })
+      
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "system", content: contextPrompt },
-          { role: "user", content: userMessage }
-        ],
+        messages: messages,
         temperature: 0.7,
         max_tokens: 1500,
         response_format: { type: "json_object" }
@@ -245,7 +262,7 @@ function generateKeywordResponse(keywords: string[], originalMessage: string): s
 
 export async function POST(request: NextRequest) {
   try {
-    const { message, context } = await request.json()
+    const { message, context, conversationHistory } = await request.json()
     
     if (!message || typeof message !== 'string') {
       return NextResponse.json(
@@ -258,7 +275,12 @@ export async function POST(request: NextRequest) {
     const knowledgeContext = getKnowledgeContext(message)
     
     // Generate AI response (with OpenAI if available, otherwise enhanced fallback)
-    const heliosResponse = await generateAIResponse(message, knowledgeContext, context)
+    const heliosResponse = await generateAIResponse(
+      message, 
+      knowledgeContext, 
+      conversationHistory || [],
+      context
+    )
     
     // Generate log ID for tracking
     const logId = `helios_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`

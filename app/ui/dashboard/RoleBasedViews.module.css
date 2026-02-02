@@ -1,0 +1,284 @@
+/* Role-Based Dashboard Views */
+
+.shipControlView,
+.educatorView {
+  padding: 20px;
+  background: rgba(20, 20, 30, 0.6);
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.viewTitle {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #64b5f6;
+}
+
+.viewDescription {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 20px;
+}
+
+/* Ship Control View */
+.systemGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.systemCategory {
+  background: rgba(30, 30, 45, 0.8);
+  border: 1px solid rgba(100, 150, 255, 0.2);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.categoryTitle {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #90caf9;
+  border-bottom: 1px solid rgba(100, 150, 255, 0.2);
+  padding-bottom: 8px;
+}
+
+.levelsList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.levelItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  background: rgba(40, 40, 55, 0.6);
+  border-radius: 6px;
+  border-left: 3px solid transparent;
+  transition: all 0.2s;
+}
+
+.levelItem.statusnormal {
+  border-left-color: #4caf50;
+}
+
+.levelItem.statuswarning {
+  border-left-color: #ff9800;
+}
+
+.levelLabel {
+  flex: 1;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.levelValue {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-right: 12px;
+}
+
+.value {
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.unit {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.statusIndicator {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.statusIndicator.normal {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+}
+
+.statusIndicator.warning {
+  background: rgba(255, 152, 0, 0.2);
+  color: #ff9800;
+}
+
+/* Educator View */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.statCard {
+  background: rgba(30, 30, 45, 0.8);
+  border: 1px solid rgba(100, 150, 255, 0.2);
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+}
+
+.statValue {
+  font-size: 32px;
+  font-weight: 700;
+  color: #64b5f6;
+  margin-bottom: 4px;
+}
+
+.statLabel {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.filters {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.filterGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.filterGroup label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.filterSelect {
+  padding: 8px 12px;
+  background: rgba(40, 40, 55, 0.8);
+  border: 1px solid rgba(100, 150, 255, 0.3);
+  border-radius: 6px;
+  color: #fff;
+  font-size: 14px;
+  min-width: 150px;
+}
+
+.filterSelect:focus {
+  outline: none;
+  border-color: #64b5f6;
+}
+
+.prioritySection,
+.curriculumSection {
+  margin-bottom: 32px;
+}
+
+.sectionTitle {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: #90caf9;
+  border-bottom: 1px solid rgba(100, 150, 255, 0.2);
+  padding-bottom: 8px;
+}
+
+.curriculumList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 16px;
+}
+
+.curriculumCard {
+  background: rgba(30, 30, 45, 0.8);
+  border: 1px solid rgba(100, 150, 255, 0.2);
+  border-radius: 8px;
+  padding: 16px;
+  transition: all 0.2s;
+}
+
+.curriculumCard:hover {
+  border-color: rgba(100, 150, 255, 0.4);
+  transform: translateY(-2px);
+}
+
+.curriculumHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.curriculumGrade {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+
+.curriculumSubject {
+  font-size: 16px;
+  font-weight: 600;
+  color: #64b5f6;
+}
+
+.statusBadge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.curriculumTopic {
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.curriculumDescription {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.curriculumDueDate {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 8px;
+}
+
+.curriculumResources {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(100, 150, 255, 0.1);
+}
+
+.curriculumResources strong {
+  color: #90caf9;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 40px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 14px;
+}

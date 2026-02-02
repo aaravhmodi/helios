@@ -16,6 +16,7 @@ export type CrewRole =
   | 'structural-engineer'
   | 'robotics-tech'
   | 'commander'
+  | 'ship-control'
   | 'educator'
   | 'general-crew'
   | 'visitor'

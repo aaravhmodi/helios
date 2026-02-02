@@ -57,11 +57,20 @@ export default function HeliosConsole({
     setIsLoading(true)
     
     try {
+      // Build conversation history for context
+      const conversationHistory = messages
+        .filter(msg => msg.role !== 'helios' || msg.content !== 'HELIOS Console active. Decision-support tool. Human operators retain authority. How may I assist you?')
+        .map(msg => ({
+          role: msg.role === 'helios' ? 'assistant' as const : 'user' as const,
+          content: msg.content
+        }))
+      
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: input,
+          conversationHistory: conversationHistory,
           context: {
             userRole,
             shiftMode,

@@ -42,6 +42,8 @@ import BloodPressureInput from '../ui/quiz/BloodPressureInput'
 import RolePicker from '../ui/quiz/RolePicker'
 import HeliosConsole from '../ui/helios/HeliosConsole'
 import FoodList from '../ui/food/FoodList'
+import ShipControlView from '../ui/dashboard/ShipControlView'
+import EducatorView from '../ui/dashboard/EducatorView'
 
 interface TelemetryData {
   timestamp: string
@@ -904,8 +906,17 @@ export default function Dashboard() {
       <div className={styles.mainLayout}>
         {/* Main Content Area */}
         <div className={styles.mainContent}>
-          {/* Role-based Summary */}
-          {userProfile && (
+          {/* Role-based Views */}
+          {userProfile && userProfile.crewRole === 'ship-control' && (
+            <ShipControlView telemetryData={telemetryData} currentState={currentState} />
+          )}
+          
+          {userProfile && userProfile.crewRole === 'educator' && (
+            <EducatorView />
+          )}
+          
+          {/* Standard Role Summary for other roles */}
+          {userProfile && userProfile.crewRole !== 'ship-control' && userProfile.crewRole !== 'educator' && (
             <div className={styles.personalizedSection}>
               <div className={styles.personalCard}>
                 <h2 className={styles.sectionTitle}>Your Role & Responsibilities</h2>
@@ -937,8 +948,8 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Food & Nutrition Section */}
-          {userProfile && (
+          {/* Food & Nutrition Section - Hide for ship-control and educator */}
+          {userProfile && userProfile.crewRole !== 'ship-control' && userProfile.crewRole !== 'educator' && (
             <div className={styles.personalizedSection}>
               <div className={styles.personalCard}>
                 <h2 className={styles.sectionTitle}>Meal and Safety Guidance (Kepler Station)</h2>
@@ -992,7 +1003,8 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* System Status Overview */}
+          {/* System Status Overview - Show for all except educator */}
+          {(!userProfile || userProfile.crewRole !== 'educator') && (
           <div className={styles.statusGrid}>
             <div className={styles.statusCard}>
               <div className={styles.statusIcon}>🌬️</div>
@@ -1096,8 +1108,10 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
+          )}
 
-          {/* Charts Grid */}
+          {/* Charts Grid - Show for all except educator */}
+          {(!userProfile || userProfile.crewRole !== 'educator') && (
           <div className={styles.chartsGrid}>
             <div className={styles.chartCard}>
               <h3 className={styles.chartTitle}>Oxygen (O2) %</h3>
@@ -1177,8 +1191,10 @@ export default function Dashboard() {
               </ResponsiveContainer>
             </div>
           </div>
+          )}
 
-          {/* Alerts and Recommendations */}
+          {/* Alerts and Recommendations - Show for all except educator */}
+          {(!userProfile || userProfile.crewRole !== 'educator') && (
           <div className={styles.tablesGrid}>
             <div className={styles.tableCard}>
               <h2 className={styles.tableTitle}>Active Alerts ({alerts.length})</h2>
@@ -1261,6 +1277,7 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
+          )}
         </div>
 
         {/* Sidebar - HELIOS Console */}
