@@ -80,7 +80,17 @@ export default function HeliosConsole({
         })
       })
       
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || errorData.details || `Server error: ${response.status}`)
+      }
+      
       const data = await response.json()
+      
+      // Handle error response from API
+      if (data.error) {
+        throw new Error(data.error || data.details || 'Unknown error')
+      }
       
       const heliosMessage: HeliosMessage = {
         id: (Date.now() + 1).toString(),
@@ -96,12 +106,12 @@ export default function HeliosConsole({
       }
       
       setMessages(prev => [...prev, heliosMessage])
-    } catch (error) {
+    } catch (error: any) {
       console.error('HELIOS API Error:', error)
       const errorMessage: HeliosMessage = {
         id: (Date.now() + 1).toString(),
         role: 'helios',
-        content: 'Error communicating with HELIOS. Please try again.',
+        content: error.message || 'Error communicating with HELIOS. Please try again.',
         timestamp: new Date().toISOString(),
         riskLevel: 'low'
       }

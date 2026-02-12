@@ -1,0 +1,78 @@
+═══════════════════════════════════════════════════════════════
+  COPY & PASTE EXAMPLE - ADD THIS TO YOUR FILE
+═══════════════════════════════════════════════════════════════
+
+STEP 1: Open app/lib/knowledge-base.ts
+
+STEP 2: Find this section (around line 38-46):
+
+  lifeSupport: {
+    atmosphere: `...`,
+    waterRecovery: `...`,
+    wasteRecycling: `...`,
+    agriculture: `Agricultural systems include: vertical hydroponic farms...`,
+    healthcare: `Medical facilities include...`,
+    solarPower: `...`,
+    energyStorage: `...`
+  },
+
+STEP 3: Add this NEW line after "agriculture" (between line 42 and 43):
+
+    foodProduction: `We produce 1,000 kg of food per day. This includes fresh vegetables, fruits, grains, and protein sources from algae and insects.`,
+
+So it looks like:
+
+  lifeSupport: {
+    atmosphere: `...`,
+    waterRecovery: `...`,
+    wasteRecycling: `...`,
+    agriculture: `Agricultural systems include: vertical hydroponic farms...`,
+    foodProduction: `We produce 1,000 kg of food per day. This includes fresh vegetables, fruits, grains, and protein sources from algae and insects.`,  ← ADD THIS
+    healthcare: `Medical facilities include...`,
+    solarPower: `...`,
+    energyStorage: `...`
+  },
+
+STEP 4: Scroll down to find this (around line 189-194):
+
+  if (lowerQuery.includes('food') || lowerQuery.includes('agriculture') || lowerQuery.includes('farm') || lowerQuery.includes('grow')) {
+    sections.push(`LIFE SUPPORT - Agriculture: ${HELIOS_KNOWLEDGE_BASE.lifeSupport.agriculture}`)
+  }
+  if (lowerQuery.includes('healthcare') || lowerQuery.includes('medical') || lowerQuery.includes('health')) {
+    sections.push(`LIFE SUPPORT - Healthcare: ${HELIOS_KNOWLEDGE_BASE.lifeSupport.healthcare}`)
+  }
+
+STEP 5: Add this NEW block between those two "if" statements:
+
+  if (lowerQuery.includes('food production') || lowerQuery.includes('daily production') || lowerQuery.includes('food output')) {
+    sections.push(`FOOD PRODUCTION:\n${HELIOS_KNOWLEDGE_BASE.lifeSupport.foodProduction}`)
+  }
+
+So it looks like:
+
+  if (lowerQuery.includes('food') || lowerQuery.includes('agriculture') || lowerQuery.includes('farm') || lowerQuery.includes('grow')) {
+    sections.push(`LIFE SUPPORT - Agriculture: ${HELIOS_KNOWLEDGE_BASE.lifeSupport.agriculture}`)
+  }
+  if (lowerQuery.includes('food production') || lowerQuery.includes('daily production') || lowerQuery.includes('food output')) {  ← ADD THIS
+    sections.push(`FOOD PRODUCTION:\n${HELIOS_KNOWLEDGE_BASE.lifeSupport.foodProduction}`)  ← ADD THIS
+  }  ← ADD THIS
+  if (lowerQuery.includes('healthcare') || lowerQuery.includes('medical') || lowerQuery.includes('health')) {
+    sections.push(`LIFE SUPPORT - Healthcare: ${HELIOS_KNOWLEDGE_BASE.lifeSupport.healthcare}`)
+  }
+
+STEP 6: Save the file (Ctrl+S)
+
+STEP 7: Restart server:
+  - Press Ctrl+C in terminal
+  - Type: npm run dev
+  - Press Enter
+
+STEP 8: Test it!
+  - Go to dashboard
+  - Open HELIOS Console
+  - Ask: "What is food production?"
+  - You should see your new text!
+
+═══════════════════════════════════════════════════════════════
+  THAT'S IT! Now you can add ANY information the same way.
+═══════════════════════════════════════════════════════════════

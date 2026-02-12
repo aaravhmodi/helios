@@ -42,7 +42,23 @@ async function generateAIResponse(
 ): Promise<HeliosResponse> {
   // Initialize OpenAI client at runtime to ensure environment variables are loaded
   const apiKey = process.env.OPENAI_API_KEY
-  const openai = apiKey ? new OpenAI({ apiKey }) : null
+  // Validate API key format (OpenAI keys start with 'sk-' or 'sk-proj-')
+  const isValidOpenAIKey = apiKey && (apiKey.startsWith('sk-') || apiKey.startsWith('sk-proj-'))
+  
+  // Debug logging (only log first few chars for security)
+  if (apiKey) {
+    console.log('OpenAI API key found:', apiKey.substring(0, 10) + '...' + (apiKey.length > 20 ? apiKey.substring(apiKey.length - 4) : ''))
+    console.log('API key length:', apiKey.length)
+    console.log('Is valid format:', isValidOpenAIKey)
+  } else {
+    console.warn('No OpenAI API key found in environment variables')
+  }
+  
+  const openai = isValidOpenAIKey ? new OpenAI({ apiKey }) : null
+  
+  if (apiKey && !isValidOpenAIKey) {
+    console.warn('OpenAI API key format appears invalid. Expected key starting with "sk-" or "sk-proj-". Falling back to rule-based responses.')
+  }
   
   const contextPrompt = `USER CONTEXT:
 - Role: ${userContext?.userRole || 'Not specified'}
@@ -86,27 +102,79 @@ If you cannot provide a structured response, provide a plain text response and I
       // Add current user message
       messages.push({ role: "user", content: userMessage })
       
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: messages,
-        temperature: 0.7,
-        max_tokens: 1500,
-        response_format: { type: "json_object" }
-      })
+      // Update system prompt to ensure JSON response
+      const jsonSystemPrompt = `${SYSTEM_PROMPT}
+
+IMPORTANT: You must respond with a valid JSON object containing:
+- "response": your main text response
+- "riskLevel": one of "low", "medium", "high", or "critical"
+- "reasoningSummary": brief explanation of your reasoning
+- "suggestedActions": array of actionable recommendations (can be empty)
+- "citations": array of knowledge base references (can be empty)
+- "confidence": number between 0 and 1
+
+Respond ONLY with valid JSON, no other text.`
+
+      // Update the system message with JSON requirement
+      const jsonMessages = messages.map((msg, idx) => 
+        idx === 0 ? { ...msg, content: jsonSystemPrompt } : msg
+      )
+
+      let completion
+      try {
+        completion = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: jsonMessages,
+          temperature: 0.7,
+          max_tokens: 1500,
+          response_format: { type: "json_object" }
+        })
+      } catch (apiError: any) {
+        // If JSON format fails, try without it
+        console.warn('JSON format failed, trying without response_format:', apiError.message)
+        try {
+          completion = await openai.chat.completions.create({
+            model: "gpt-4o-mini",
+            messages: jsonMessages,
+            temperature: 0.7,
+            max_tokens: 1500
+          })
+      } catch (retryError: any) {
+        console.error('OpenAI API retry failed:', retryError)
+        console.error('Error details:', {
+          message: retryError.message,
+          status: retryError.status,
+          code: retryError.code,
+          response: retryError.response ? JSON.stringify(retryError.response) : 'No response'
+        })
+        throw new Error(`OpenAI API error: ${retryError.message || 'Unknown error'}`)
+      }
+      }
       
       const content = completion.choices[0]?.message?.content || "{}"
       try {
-        const parsed = JSON.parse(content)
+        // Try to parse as JSON first
+        let parsed = JSON.parse(content)
+        // If it's a string that looks like JSON, try parsing again
+        if (typeof parsed === 'string') {
+          try {
+            parsed = JSON.parse(parsed)
+          } catch {
+            // If still a string, use it as response
+          }
+        }
+        
         return {
-          response: parsed.response || content,
+          response: parsed.response || (typeof parsed === 'string' ? parsed : content),
           riskLevel: parsed.riskLevel || 'low',
           reasoningSummary: parsed.reasoningSummary || 'Analysis based on available data',
-          suggestedActions: parsed.suggestedActions || [],
-          citations: parsed.citations || [],
-          confidence: parsed.confidence || 0.8
+          suggestedActions: Array.isArray(parsed.suggestedActions) ? parsed.suggestedActions : [],
+          citations: Array.isArray(parsed.citations) ? parsed.citations : [],
+          confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0.8
         }
-      } catch {
+      } catch (parseError) {
         // If JSON parsing fails, treat as plain text
+        console.warn('JSON parse failed, using content as plain text:', parseError)
         return {
           response: content,
           riskLevel: 'low',
@@ -118,12 +186,37 @@ If you cannot provide a structured response, provide a plain text response and I
       }
     } catch (error: any) {
       console.error('OpenAI API Error:', error)
+      // Log specific error details for debugging
+      if (error.message) {
+        console.error('Error message:', error.message)
+      }
+      if (error.status) {
+        console.error('Error status:', error.status)
+      }
+      if (error.code) {
+        console.error('Error code:', error.code)
+        // Special handling for quota errors
+        if (error.code === 'insufficient_quota' || error.status === 429) {
+          console.warn('⚠️ OpenAI API quota exceeded. Using fallback responses. Add credits at https://platform.openai.com/account/billing')
+        }
+      }
+      if (error.response) {
+        console.error('Error response:', JSON.stringify(error.response, null, 2))
+      }
       // Fall through to fallback response
     }
   }
   
   // Fallback: Enhanced rule-based response with knowledge base
+  console.log('Using fallback response system')
+  console.log('User message:', userMessage)
+  console.log('Knowledge context length:', knowledgeContext.length)
+  console.log('Knowledge context preview:', knowledgeContext.substring(0, 200))
+  
   const fallbackResponse = generateEnhancedResponse(userMessage, knowledgeContext)
+  console.log('Generated response length:', fallbackResponse.length)
+  console.log('Generated response preview:', fallbackResponse.substring(0, 200))
+  
   return {
     response: fallbackResponse,
     riskLevel: 'low',
@@ -137,9 +230,21 @@ If you cannot provide a structured response, provide a plain text response and I
 function generateEnhancedResponse(userMessage: string, knowledgeContext: string): string {
   const lowerMessage = userMessage.toLowerCase()
   
-  // If we have specific knowledge context, use it (prioritize this)
+  console.log('generateEnhancedResponse called with message:', userMessage)
+  console.log('Knowledge context is overview?', knowledgeContext.includes('HELIOS Space Settlement Overview'))
+  
+  // Always use the knowledge context if it's specific (not just the overview)
   if (knowledgeContext && !knowledgeContext.includes('HELIOS Space Settlement Overview')) {
+    console.log('Using specific knowledge context')
     return knowledgeContext
+  }
+  
+  // Try to get more specific context directly from the query
+  const specificContext = getKnowledgeContext(userMessage)
+  console.log('Specific context found?', specificContext && !specificContext.includes('HELIOS Space Settlement Overview'))
+  if (specificContext && !specificContext.includes('HELIOS Space Settlement Overview')) {
+    console.log('Using specific context from query')
+    return specificContext
   }
   
   // Greeting responses
@@ -147,19 +252,23 @@ function generateEnhancedResponse(userMessage: string, knowledgeContext: string)
     return `Greetings, Explorer. I am HELIOS, the central AI system for space settlement operations. I have comprehensive knowledge of the HELIOS Space Settlement project, including design specifications, life support systems, safety protocols, and operational procedures. How may I assist you today?`
   }
   
-  // Check for specific topics and provide detailed responses
-  const knowledgeContextGenerated = getKnowledgeContext(userMessage)
-  if (knowledgeContextGenerated && !knowledgeContextGenerated.includes('HELIOS Space Settlement Overview')) {
-    return knowledgeContextGenerated
-  }
-  
   // Try to extract keywords and provide more specific responses
   const keywords = extractKeywords(lowerMessage)
+  console.log('Extracted keywords:', keywords)
   if (keywords.length > 0) {
-    return generateKeywordResponse(keywords, userMessage)
+    const keywordResponse = generateKeywordResponse(keywords, userMessage)
+    console.log('Using keyword response')
+    return keywordResponse
+  }
+  
+  // If we have the overview, use it with a helpful message
+  if (knowledgeContext && knowledgeContext.includes('HELIOS Space Settlement Overview')) {
+    console.log('Using overview with helpful message')
+    return `${knowledgeContext}\n\nPlease ask a more specific question about: Life Support, Population, Governance, Safety, Orbit & Asteroid, or any other aspect of Kepler Station.`
   }
   
   // Default intelligent response with more variety
+  console.log('Using default response')
   return `I understand you're asking about "${userMessage}". As HELIOS AI, I can provide detailed information on:
 
 **SETTLEMENT DESIGN**
@@ -262,11 +371,22 @@ function generateKeywordResponse(keywords: string[], originalMessage: string): s
 
 export async function POST(request: NextRequest) {
   try {
-    const { message, context, conversationHistory } = await request.json()
+    let body
+    try {
+      body = await request.json()
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError)
+      return NextResponse.json(
+        { error: 'Invalid JSON in request body' },
+        { status: 400 }
+      )
+    }
+    
+    const { message, context, conversationHistory } = body || {}
     
     if (!message || typeof message !== 'string') {
       return NextResponse.json(
-        { error: 'Invalid message' },
+        { error: 'Invalid message - message is required and must be a string' },
         { status: 400 }
       )
     }
@@ -293,8 +413,13 @@ export async function POST(request: NextRequest) {
     })
   } catch (error: any) {
     console.error('Chat API Error:', error)
+    console.error('Error stack:', error.stack)
     return NextResponse.json(
-      { error: 'Failed to process message', details: error.message },
+      { 
+        error: 'Failed to process message', 
+        details: error.message || 'Unknown error',
+        response: 'I apologize, but I encountered an error processing your request. Please try again or rephrase your question.'
+      },
       { status: 500 }
     )
   }
